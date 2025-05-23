@@ -10,9 +10,23 @@ IMG_SIZE = (224, 224)
 
 @st.cache_resource
 def load_trained_model():
-    model = load_model("best_model.keras")
-    le = joblib.load("label_encoder.joblib")
-    return model, le
+    try:
+        # Check if files exist
+        import os
+        if not os.path.exists("best_model.keras"):
+            st.error("Model file 'best_model.keras' not found!")
+            return None, None
+        
+        if not os.path.exists("label_encoder.joblib"):
+            st.error("Label encoder file 'label_encoder.joblib' not found!")
+            return None, None
+        
+        model = load_model("best_model_small.keras")  # Update this to match your actual file name
+        le = joblib.load("label_encoder.joblib")
+        return model, le
+    except Exception as e:
+        st.error(f"Error loading model or label encoder: {str(e)}")
+        return None, None
 
 def preprocess_image(image):
     image = image.resize(IMG_SIZE)
@@ -25,6 +39,10 @@ def main():
     st.write("Upload an image to classify the animal type.")
     
     model, le = load_trained_model()
+    
+    # Check if model and label encoder loaded successfully
+    if model is None or le is None:
+        st.stop()
     
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
     
