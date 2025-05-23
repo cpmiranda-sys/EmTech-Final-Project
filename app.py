@@ -1,51 +1,46 @@
 import streamlit as st
-import tensorflow as tf
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.image import img_to_array, load_img
+import numpy as np
+
+# Constants
+IMG_SIZE = (150, 150)
+CLASS_NAMES = ['antelope', 'badger', 'bat', 'bear', 'bee', 'beetle', 'bison', 'boar', 'butterfly', 'cat', 'caterpillar', 'chimpanzee', 'cockroach', 'cow', 'coyote', 'crab', 'crow', 'deer', 'dog', 'dolphin', 'donkey', 'dragonfly', 'duck', 'eagle', 'elephant', 'flamingo', 'fly', 'fox', 'goat', 'goldfish', 'goose', 'gorilla', 'grasshopper', 'hamster', 'hare', 'hedgehog', 'hippopotamus', 'hornbill', 'horse', 'hummingbird', 'hyena', 'jellyfish', 'kangaroo', 'koala', 'ladybugs', 'leopard', 'lion', 'lizard', 'lobster', 'mosquito', 'moth', 'mouse', 'octopus', 'okapi', 'orangutan', 'otter', 'owl', 'ox', 'oyster', 'panda', 'parrot', 'pelecaniformes', 'penguin', 'pig', 'pigeon', 'porcupine', 'possum', 'raccoon', 'rat', 'reindeer', 'rhinoceros', 'sandpiper', 'seahorse', 'seal', 'shark', 'sheep', 'snake', 'sparrow', 'squid', 'squirrel', 'starfish', 'swan', 'tiger', 'turkey', 'turtle', 'whale', 'wolf', 'wombat', 'woodpecker', 'zebra']  
 
 @st.cache_resource
-def load_model():
-  model=tf.keras.models.load_model('animal_classification.h5')
-  return model
-model=load_model()
-st.write("""
-# Alzheimer MRI Detection"""
-)
-file=st.file_uploader("Choose an Animal Image photo from computer",type=["jpg","png"])
+def load_trained_model():
+    model = load_model("optimized_animal_classifier.h5")
+    return model
 
-import cv2
-from PIL import Image,ImageOps
-import numpy as np
+def preprocess_image(image):
+    image = image.resize(IMG_SIZE)
+    img_array = img_to_array(image) / 255.0  
+    img_array = np.expand_dims(img_array, axis=0)  # 
+    return img_array
 
-# def import_and_predict(image_data,model):
-#     size=(128,128)
-#     image=ImageOps.fit(image_data,size,Image.ANTIALIAS)
-#     img=np.asarray(image)
-#     img_reshape=img[np.newaxis,...]
-#     prediction=model.predict(img_reshape)
-#     return prediction
+def main():
+    st.title("Animal Classification Predictor")
+    st.write("Upload an image to classify the Animal.")
 
-import cv2
-from PIL import Image, ImageOps
-import numpy as np
+    model = load_trained_model()
 
-def import_and_predict(image_data, model):
-    size = (224, 224)
-    
-    # Resize the image to the expected input shape of the model
-    image = ImageOps.fit(image_data, size, Image.ANTIALIAS)
-    img = np.asarray(image)
-    img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_NEAREST)
-    
-    # Convert the image to grayscale if necessary
-    if img.ndim == 3 and img.shape[2] == 3:
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
-    # Reshape the image to add a channel dimension
-    img_reshape = img.reshape((1,) + img.shape + (1,))
+    if uploaded_file:
+        image = load_img(uploaded_file)
+        st.image(image, caption="Uploaded Image", use_column_width=True)
 
-    # Make predictions using the Keras model
-    prediction = model.predict(img_reshape)
-    return prediction
+        img_array = preprocess_image(image)
+        preds = model.predict(img_array)
+        predicted_index = np.argmax(preds)
+        confidence = preds[0][predicted_index] * 100
 
+        st.write(f"**Prediction:** {CLASS_NAMES[predicted_index]}")
+        st.write(f"**Confidence:** {confidence:.2f}%")
 
-if file is None:
-    st.text("Please upload an image file")
+        st.write("### All Class Probabilities:")
+        for i in range(min(len(CLASS_NAMES), preds.shape[1])):
+            st.write(f"{CLASS_NAMES[i]}: {preds[0][i]*100:.2f}%")
+
+if __name__ == "__main__":
+    main()
