@@ -11,7 +11,7 @@ CLASS_NAMES = ['antelope', 'badger', 'bat', 'bear', 'bee', 'beetle', 'bison', 'b
 @st.cache_resource
 def load_trained_model():
     try:
-        if not os.path.exists("animal_classifier.h5"):
+        if not os.path.exists("up_animal_classifier.h5"):
             st.error("Model file 'animal_classifier.h5' not found!")
             return None
             
