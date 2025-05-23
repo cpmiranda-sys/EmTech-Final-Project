@@ -21,7 +21,7 @@ def load_trained_model():
             st.error("Label encoder file 'label_encoder.joblib' not found!")
             return None, None
         
-        model = load_model("best_model_small.keras")  # Update this to match your actual file name
+        model = load_model("best_model.keras")  # Update this to match your actual file name
         le = joblib.load("label_encoder.joblib")
         return model, le
     except Exception as e:
