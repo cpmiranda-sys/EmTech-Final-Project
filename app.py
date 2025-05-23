@@ -9,7 +9,7 @@ CLASS_NAMES = ['antelope', 'badger', 'bat', 'bear', 'bee', 'beetle', 'bison', 'b
 
 @st.cache_resource
 def load_trained_model():
-    model = load_model("optimized_animal_classifier.h5")
+    model = load_model("animal_classifier.h5")
     return model
 
 def preprocess_image(image):
