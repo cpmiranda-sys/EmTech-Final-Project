@@ -1,52 +1,60 @@
 import streamlit as st
-import numpy as np
-import cv2
 from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.image import img_to_array
 from joblib import load as joblib_load
 from PIL import Image
-import tempfile
+import numpy as np
+import cv2
 
-# Load model and label encoder
+# Constants
+IMG_SIZE = (224, 224)
+THRESHOLD = 0.7
+
 @st.cache_resource
-def load_model_and_encoder():
-    model = load_model('best_model.keras')
-    label_encoder = joblib_load('label_encoder.joblib')
+def load_trained_model_and_encoder():
+    model = load_model("animal_classifier.h5")
+    label_encoder = joblib_load("label_encoder.joblib")
     return model, label_encoder
 
-model, label_encoder = load_model_and_encoder()
+def preprocess_image(image):
+    image = image.resize(IMG_SIZE)
+    image_array = np.array(image)
+    image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+    image_array = cv2.resize(image_array, IMG_SIZE)
+    image_array = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
+    image_array = img_to_array(image_array) / 255.0
+    image_array = np.expand_dims(image_array, axis=0)
+    return image_array
 
-# Prediction function
-def predict_animal_from_image(image, model, label_encoder, threshold=0.7):
-    img = image.resize((224, 224))
-    img_array = np.array(img)
-    img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
-    img_array = cv2.resize(img_array, (224, 224))
-    img_array = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
-    img_array = np.expand_dims(img_array, axis=0).astype("float32") / 255.0
+def main():
+    st.title("🐾 Animal Image Classifier")
+    st.write("Upload an image to identify the type of animal.")
 
-    preds = model.predict(img_array, verbose=0)
-    max_prob = np.max(preds)
-    pred_class_idx = np.argmax(preds)
+    model, label_encoder = load_trained_model_and_encoder()
 
-    if max_prob < threshold:
-        return "Unknown Animal", float(max_prob)
-    else:
-        pred_class = label_encoder.inverse_transform([pred_class_idx])[0]
-        return pred_class, float(max_prob)
+    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
-# Streamlit UI
-st.set_page_config(page_title="Animal Classifier", layout="centered")
-st.title("🐾 Animal Image Classifier")
-st.write("Upload an image of an animal, and the model will predict its category.")
+    if uploaded_file:
+        image = Image.open(uploaded_file).convert("RGB")
+        st.image(image, caption="Uploaded Image", use_column_width=True)
 
-uploaded_file = st.file_uploader("Choose an image", type=["jpg", "jpeg", "png"])
+        img_array = preprocess_image(image)
+        preds = model.predict(img_array)
+        predicted_index = np.argmax(preds)
+        confidence = preds[0][predicted_index]
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+        if confidence < THRESHOLD:
+            predicted_label = "Unknown Animal"
+        else:
+            predicted_label = label_encoder.inverse_transform([predicted_index])[0]
 
-    if st.button("Predict"):
-        with st.spinner("Classifying..."):
-            prediction, confidence = predict_animal_from_image(image, model, label_encoder)
-        st.success(f"**Prediction:** {prediction}")
-        st.info(f"**Confidence:** {confidence:.2f}")
+        st.write(f"**Prediction:** {predicted_label}")
+        st.write(f"**Confidence:** {confidence * 100:.2f}%")
+
+        st.write("### All Class Probabilities:")
+        class_names = label_encoder.classes_
+        for i, prob in enumerate(preds[0]):
+            st.write(f"{class_names[i]}: {prob * 100:.2f}%")
+
+if __name__ == "__main__":
+    main()
