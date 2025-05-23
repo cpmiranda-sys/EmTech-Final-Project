@@ -11,11 +11,11 @@ CLASS_NAMES = ['antelope', 'badger', 'bat', 'bear', 'bee', 'beetle', 'bison', 'b
 @st.cache_resource
 def load_trained_model():
     try:
-        if not os.path.exists("up_animal_classifier.h5"):
-            st.error("Model file 'animal_classifier.h5' not found!")
+        if not os.path.exists("best_model.keras"):
+            st.error("Model not found!")
             return None
             
-        model = load_model("animal_classifier.h5")
+        model = load_model("best_model.keras")
         st.success("Model loaded successfully!")
         return model
     except Exception as e:
